@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sonyd"
+version = "0.1.0"
+description = "Control Sony WH-1000XM6 headphones from Linux"
+readme = "README.md"
+requires-python = ">=3.11"
+
+[project.scripts]
+sonyd = "sonyd.__main__:main"
+sonyctl = "sonyd.ctl:main"
+
+[tool.setuptools]
+packages = ["sonyd"]
