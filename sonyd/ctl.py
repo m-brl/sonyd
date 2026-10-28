@@ -1,4 +1,5 @@
-"""sonyd client: sonyctl [status | battery | firmware | anc <mode> [level] [voice|novoice]]"""
+"""sonyd client: sonyctl [status | battery | firmware | anc <mode> [level] [voice|novoice] | anc switch
+                        | pause [on|off] | speak-to-chat [on|off] | poweroff]"""
 
 import socket
 import sys

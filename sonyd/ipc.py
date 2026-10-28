@@ -2,6 +2,8 @@
 
     > status                 < ok: mode=nc voice=off level=20
     > anc ambient 15 voice   < ok: mode=ambient voice=on level=15
+    > anc switch             < ok: mode=off voice=on level=15
+    > pause off              < ok: off
     > foo                    < err: unknown command 'foo' …
 """
 
@@ -16,7 +18,8 @@ from .request import RequestError
 
 log = logging.getLogger("sonyd.ipc")
 
-HELP = "commands: status | battery | firmware | anc <off|nc|ambient> [level 0-20] [voice|novoice]"
+HELP = ("commands: status | battery | firmware | anc <off|nc|ambient> [level 0-20] [voice|novoice]"
+        " | anc switch | pause [on|off] | speak-to-chat [on|off] | poweroff")
 
 
 class AlreadyRunning(RuntimeError):
@@ -32,7 +35,7 @@ def default_socket_path() -> str:
 
 def _parse_anc_args(args: list[str]) -> tuple[str, int | None, bool | None]:
     if not args:
-        raise RequestError("usage: anc <off|nc|ambient> [level 0-20] [voice|novoice]")
+        raise RequestError("usage: anc <off|nc|ambient> [level 0-20] [voice|novoice] | anc switch")
     mode, level, voice = args[0], None, None
     for arg in args[1:]:
         if arg.isdigit():
@@ -54,8 +57,25 @@ async def dispatch(device, line: str) -> str:
             return str(await request.battery(device))
         case "firmware":
             return await request.firmware(device)
+        case "anc" if args[:1] == ["switch"]:
+            if len(args) > 1:
+                raise RequestError("anc switch takes no argument")
+            return str(await request.switch_anc(device))
         case "anc":
             return str(await request.set_anc(device, *_parse_anc_args(args)))
+        case "pause" | "speak-to-chat":
+            match args:
+                case []:
+                    on = await request.get_toggle(device, cmd)
+                case ["on" | "off" as value]:
+                    on = await request.set_toggle(device, cmd, value == "on")
+                case _:
+                    raise RequestError(f"usage: {cmd} [on|off]")
+            return "on" if on else "off"
+        case "poweroff":
+            if args:
+                raise RequestError("poweroff takes no argument")
+            return await request.poweroff(device)
         case "help" | "":
             return HELP
     raise RequestError(f"unknown command '{cmd}' — {HELP}")

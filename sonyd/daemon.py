@@ -31,6 +31,10 @@ class DeviceError(Exception):
     pass
 
 
+class ConnectionLost(DeviceError):
+    """Le lien est tombé alors qu'il était établi (casque éteint, hors de portée…)."""
+
+
 # --- Trames ---------------------------------------------------------------
 
 
@@ -196,7 +200,7 @@ class Device:
         except OSError as e:
             log.warning("connection lost: %s", e)
         finally:
-            self._fail_pending(DeviceError("connection to headset lost"))
+            self._fail_pending(ConnectionLost("connection to headset lost"))
             self._teardown()
 
     def _handle(self, mtype: int, seq: int, payload: bytes):

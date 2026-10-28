@@ -76,6 +76,10 @@ Then send commands with the client:
 | `battery` | Battery level and charging state |
 | `firmware` | Firmware version |
 | `anc <off\|nc\|ambient> [level] [voice\|novoice]` | Change the mode. `level` (0–20) is the ambient sound level, and `voice` is focus on voice. Omitted values keep their current setting. |
+| `anc switch` | Cycle to the next mode: `nc` → `ambient` → `off` → `nc`. Level and focus on voice are kept. Handy for a keyboard shortcut. |
+| `pause [on\|off]` | Pause playback when the headset is taken off. Without an argument, show the current setting. |
+| `speak-to-chat [on\|off]` | Speak-to-chat: switch to ambient sound and pause when you start talking. Without an argument, show the current setting. |
+| `poweroff` | Switch the headset off. |
 | `help` | List the commands |
 
 ```console
@@ -83,6 +87,10 @@ $ ./sonyctl.py anc ambient 15 voice
 mode=ambient voice=on level=15
 $ ./sonyctl.py anc off
 mode=off voice=on level=15
+$ ./sonyctl.py anc switch
+mode=nc voice=on level=15
+$ ./sonyctl.py speak-to-chat off
+off
 ```
 
 `sonyctl` exits with status 1 on error and prints the message on stderr, so it can be used in scripts, keyboard shortcuts or status bars.
@@ -143,6 +151,13 @@ Each message is a frame:
 | Battery | `22 00` | `23 00 <level> <charging>` |
 | Ambient sound control: get | `66 19` | `67 19 …` |
 | Ambient sound control: set | `68 19 01 <on> <ambient> <voice> <level> 00 00` | ACK, then `69 19 …` notification |
+| Power off | `24 03 01` | ACK (the headset may drop the link first) |
+| Pause when taken off: get | `26 01` (fallback `f6 01`) | `27 01 <value>` / `f7 01 <value>` |
+| Pause when taken off: set | `f8 01 <value>` | ACK |
+| Speak-to-chat: get | `f6 0c` | `f7 0c <value> …` |
+| Speak-to-chat: set | `f8 0c <value> 01` | ACK |
+
+For the on/off settings, `<value>` is inverted: `00` means enabled and `01` disabled. These codes come from Gadgetbridge and have not been checked against Sony's app traffic yet.
 
 The **`0x19` ambient sound control format is specific to the XM6** and was found experimentally:
 
@@ -159,5 +174,5 @@ The headset also sends `0xC9` notifications that contain readable event names (`
 ## Limitations and roadmap
 
 - Only tested with the WH-1000XM6 (firmware 3.1.5). Other models may need different command codes.
-- Not supported yet: equalizer, speak-to-chat, auto power off, multipoint, and the other settings of the Sony app. To find their codes, capture the phone's Bluetooth traffic (Android developer options: *Enable Bluetooth HCI snoop log*), open `btsnoop_hci.log` in Wireshark with the `btrfcomm` filter, and toggle the setting in the app.
+- Not supported yet: equalizer, speak-to-chat settings (sensitivity, timeout), auto power off, multipoint, and the other settings of the Sony app. To find their codes, capture the phone's Bluetooth traffic (Android developer options: *Enable Bluetooth HCI snoop log*), open `btsnoop_hci.log` in Wireshark with the `btrfcomm` filter, and toggle the setting in the app.
 - Planned: a `systemd --user` service, decoding the `0xC9` notifications to react to the headset buttons, and pushing state changes to clients.
